@@ -17,6 +17,7 @@ import time
 from win32 import win32gui
 import pywintypes
 from win32api import GetSystemMetrics, ChangeDisplaySettings
+import platform
 
 user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
