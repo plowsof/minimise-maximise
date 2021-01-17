@@ -113,7 +113,14 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
                 print("resize desktop to sof res")
                 resizedDesktop = 0
                 print(theres)
+
                 setRes(theres[0],theres[1])
+                #mini then max seems to fix the LALT bug... hm
+                win32gui.ShowWindow(sofId, 11)
+                win32gui.SetForegroundWindow(sofId)
+                win32gui.ShowWindow(sofId, 9)
+
+
     except Exception as e:
         print (e)
         #print("we closed sof :(")
