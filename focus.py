@@ -207,6 +207,7 @@ def main():
     origResDesktop={}
     origResDesktop = getDesktop()
     print(origResDesktop)
+    searchForSoFWindow()
     onSoFWindowHandleChange()
     print("SoF found. Adding hooks.")
 
