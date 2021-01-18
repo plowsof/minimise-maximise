@@ -123,19 +123,19 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             theres = getRes(sofId)
             print("ok?")
             print(theres)
-        print(getDesktop())
-        #if the current res of desktop != current res of sof
-        if getDesktop() != origResSof:
-                print("resize desktop to sof res")
-                resizedDesktop = 0
-                print(theres)
-                if not setRes(origResSof[0],origResSof[1]):
-                    print("failed setting sof resolution")
-                #mini then max seems to fix the LALT bug... hm
-                win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-                win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
-        else:
-            print("desktop == sof apparently")
+            print(getDesktop())
+            #if the current res of desktop != current res of sof
+            if getDesktop() != origResSof:
+                    print("resize desktop to sof res")
+                    resizedDesktop = 0
+                    print(theres)
+                    if not setRes(origResSof[0],origResSof[1]):
+                        print("failed setting sof resolution")
+                    #mini then max seems to fix the LALT bug... hm
+                    win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+                    win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
+            else:
+                print("desktop == sof apparently")
 
     except KeyboardInterrupt:
         sys.exit(1)
