@@ -71,6 +71,8 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
         global sofMini
         global sofFull
         global resizedDesktop
+    global origResDesktop
+    global origResSof
         #sof stuff
         fgWindow = win32gui.GetForegroundWindow()
         #print("SoFid = "+str(sofId)+"\n")
@@ -121,15 +123,19 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             theres = getRes(sofId)
             print("ok?")
             print(theres)
-            if getDesktop() != theres:
+        print(getDesktop())
+        #if the current res of desktop != current res of sof
+        if getDesktop() != origResSof:
                 print("resize desktop to sof res")
                 resizedDesktop = 0
                 print(theres)
-                if not setRes(theres[0],theres[1]):
+            if not setRes(origResSof[0],origResSof[1]):
                     print("failed setting sof resolution")
                 #mini then max seems to fix the LALT bug... hm
                 win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
                 win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
+        else:
+            print("desktop == sof apparently")
 
     except KeyboardInterrupt:
         sys.exit(1)
@@ -155,6 +161,7 @@ def sofWinEnumHandler( hwnd, ctx ):
 
 def searchForSoFWindow():
     global sofId
+    global origResSof
     sofId = ""
     while sofId == "":
         print("cant find SoF,,, ill keep looking")
@@ -165,12 +172,13 @@ def searchForSoFWindow():
                 raise
             pass
         time.sleep(2)
-    return sofId
+    origResSof = getRes(sofId)
     print("Found the SoF window")
-
+    return sofId
+    
 def onSoFWindowHandleChange():
     global sofRes
-    sofRes = getRes(sofId)
+    origResSof = getRes(sofId)
 
 
 def setRes(x,y):
@@ -178,6 +186,7 @@ def setRes(x,y):
 
     devmode.PelsWidth = x
     devmode.PelsHeight = y
+    print("Set the desktop res to:"+str(x)+"x"+str(y))
 
     devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
 
@@ -220,7 +229,9 @@ def main():
     #then continue 
     origResDesktop={}
     origResDesktop = getDesktop()
+    
     print(origResDesktop)
+    searchForSoFWindow()
     onSoFWindowHandleChange()
     print("SoF found. Adding hooks.")
 
