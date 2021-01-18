@@ -125,7 +125,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             print("resize desktop to sof res")
             resizedDesktop = 0
             print(theres)
-            if not setRes(theres[0],theres[1]):
+            if not setRes(origResSof[0],origResSof[1]):
                 print("failed setting sof resolution")
             #mini then max seems to fix the LALT bug... hm
             win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
