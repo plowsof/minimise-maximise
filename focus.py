@@ -63,77 +63,82 @@ resizedDesktop = 0
 
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
              dwmsEventTime):
-    global lastTime
-    global sofId
-    #minimise a minimised window = bad?
-    global sofMini
-    global sofFull
-    global resizedDesktop
+    try:
+
+        global lastTime
+        global sofId
+        #minimise a minimised window = bad?
+        global sofMini
+        global sofFull
+        global resizedDesktop
     global origResDesktop
     global origResSof
-    #sof stuff
-    fgWindow = win32gui.GetForegroundWindow()
-    #print("SoFid = "+str(sofId)+"\n")
-    #print("fgwindow"+str(fgWindow)+"\n")
+        #sof stuff
+        fgWindow = win32gui.GetForegroundWindow()
+        #print("SoFid = "+str(sofId)+"\n")
+        #print("fgwindow"+str(fgWindow)+"\n")
 
-    while True:
-        try:
-            tup = win32gui.GetWindowPlacement(sofId)
-            break
-        except:
-            onSoFWindowHandleChange()
+        while True:
+            try:
+                tup = win32gui.GetWindowPlacement(sofId)
+                break
+            except Exception as e:
+                if e == KeyboardInterrupt:
+                    raise
+                onSoFWindowHandleChange()
 
-    minimized = True
-    if tup[1] == win32con.SW_SHOWMAXIMIZED:
-        #print("mini false")
-        minimized = False
-    elif tup[1] == win32con.SW_SHOWMINIMIZED:
-        #print("mini true")
         minimized = True
-    elif tup[1] == win32con.SW_SHOWNORMAL:
-        #print("normal true")
-        normal = True
+        if tup[1] == win32con.SW_SHOWMAXIMIZED:
+            #print("mini false")
+            minimized = False
+        elif tup[1] == win32con.SW_SHOWMINIMIZED:
+            #print("mini true")
+            minimized = True
+        elif tup[1] == win32con.SW_SHOWNORMAL:
+            #print("normal true")
+            normal = True
 
-    if fgWindow != sofId:
-        #focused window != sof
-        #minimise sof just incase
-        #account for vid_fullscreen 0 players
-        if minimized == False:
-            print("minimise sof")
-            win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+        if fgWindow != sofId:
+            #focused window != sof
+            #minimise sof just incase
+            #account for vid_fullscreen 0 players
+            if minimized == False:
+                print("minimise sof")
+                win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
 
-        #if we resized desktop already
-        #lost focus of sof
-        if origResDesktop != getDesktop():
-            if resizedDesktop == 0:
-                if ChangeDisplaySettings(None, 0) == win32con.DISP_CHANGE_SUCCESSFUL:
-                    resizedDesktop = 1
-                    print("Change res to original")
-                else:
-                    print("Change res to original failed")
+            #if we resized desktop already
+            #lost focus of sof
+            if origResDesktop != getDesktop():
+                if resizedDesktop == 0:
+                    if ChangeDisplaySettings(None, 0) == win32con.DISP_CHANGE_SUCCESSFUL:
+                        resizedDesktop = 1
+                        print("Change res to original")
+                    else:
+                        print("Change res to original failed")
 
-    else:
-        #we have focus of sof
-        print("we have sof focus")
-        theres={}
-        theres = getRes(sofId)
-        print("ok?")
-        print(theres)
+        else:
+            #we have focus of sof
+            print("we have sof focus")
+            theres={}
+            theres = getRes(sofId)
+            print("ok?")
+            print(theres)
         print(getDesktop())
         #if the current res of desktop != current res of sof
         if getDesktop() != origResSof:
-            print("resize desktop to sof res")
-            resizedDesktop = 0
-            print(theres)
+                print("resize desktop to sof res")
+                resizedDesktop = 0
+                print(theres)
             if not setRes(origResSof[0],origResSof[1]):
-                print("failed setting sof resolution")
-            #mini then max seems to fix the LALT bug... hm
-            win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-            win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
+                    print("failed setting sof resolution")
+                #mini then max seems to fix the LALT bug... hm
+                win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+                win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
         else:
             print("desktop == sof apparently")
 
-
+    except KeyboardInterrupt:
+        sys.exit(1)
 def setHook(WinEventProc, eventType):
     return user32.SetWinEventHook(
         eventType,
@@ -151,6 +156,8 @@ def sofWinEnumHandler( hwnd, ctx ):
     #print (hex(hwnd), win32gui.GetWindowText( hwnd ))
     if win32gui.GetWindowText( hwnd ) == "SoF":
         sofId = hwnd
+        return False
+    return True
 
 def searchForSoFWindow():
     global sofId
@@ -158,11 +165,17 @@ def searchForSoFWindow():
     sofId = ""
     while sofId == "":
         print("cant find SoF,,, ill keep looking")
-        win32gui.EnumWindows( sofWinEnumHandler, None )
+        try:
+            win32gui.EnumWindows( sofWinEnumHandler, None )
+        except Exception as e:
+            if e == KeyboardInterrupt:
+                raise
+            pass
         time.sleep(2)
     origResSof = getRes(sofId)
     print("Found the SoF window")
-
+    return sofId
+    
 def onSoFWindowHandleChange():
     global sofRes
     origResSof = getRes(sofId)
@@ -181,8 +194,6 @@ def setRes(x,y):
         return False
     return True
 
-    
-
 def getRes(hwnd):
     retRes={}
     retRes[0]="0"
@@ -191,8 +202,10 @@ def getRes(hwnd):
         try:
             rect = win32gui.GetWindowRect(hwnd)
             break
-        except:
-            searchForSoFWindow()
+        except Exception as e:
+            if e == KeyboardInterrupt:
+                raise
+            hwnd = searchForSoFWindow()
     x = rect[0]
     y = rect[1]
     w = rect[2] - x
@@ -237,10 +250,15 @@ def main():
         user32.TranslateMessageW(msg)
         user32.DispatchMessageW(msg)
 
+        time.sleep(0.1)
+
     for hookID in hookIDs:
         user32.UnhookWinEvent(hookID)
     ole32.CoUninitialize()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(1)
