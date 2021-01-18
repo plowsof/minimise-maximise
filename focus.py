@@ -71,8 +71,8 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
         global sofMini
         global sofFull
         global resizedDesktop
-    global origResDesktop
-    global origResSof
+        global origResDesktop
+        global origResSof
         #sof stuff
         fgWindow = win32gui.GetForegroundWindow()
         #print("SoFid = "+str(sofId)+"\n")
@@ -129,7 +129,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
                 print("resize desktop to sof res")
                 resizedDesktop = 0
                 print(theres)
-            if not setRes(origResSof[0],origResSof[1]):
+                if not setRes(origResSof[0],origResSof[1]):
                     print("failed setting sof resolution")
                 #mini then max seems to fix the LALT bug... hm
                 win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
@@ -164,7 +164,7 @@ def searchForSoFWindow():
     global origResSof
     sofId = ""
     while sofId == "":
-        print("cant find SoF,,, ill keep looking")
+        # print("cant find SoF,,, ill keep looking")
         try:
             win32gui.EnumWindows( sofWinEnumHandler, None )
         except Exception as e:
