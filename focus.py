@@ -186,7 +186,8 @@ def searchForSoFWindow():
             if e == KeyboardInterrupt:
                 raise
             pass
-        time.sleep(2)
+        if sofId == "":
+            time.sleep(2)
     # win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
     # win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
     print("Found the SoF window")
