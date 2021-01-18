@@ -79,7 +79,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             tup = win32gui.GetWindowPlacement(sofId)
             break
         except:
-            searchForSoFWindow()
+            onSoFWindowHandleChange()
 
     minimized = True
     if tup[1] == win32con.SW_SHOWMAXIMIZED:
@@ -150,12 +150,13 @@ def searchForSoFWindow():
     global sofId
     sofId = ""
     while sofId == "":
-        # print("cant find SoF,,, ill keep looking")
+        print("cant find SoF,,, ill keep looking")
         win32gui.EnumWindows( sofWinEnumHandler, None )
         time.sleep(2)
-    # print("Found the SoF window")
+    print("Found the SoF window")
 
 def onSoFWindowHandleChange():
+    global sofRes
     sofRes = getRes(sofId)
 
 
@@ -207,7 +208,7 @@ def main():
     origResDesktop={}
     origResDesktop = getDesktop()
     print(origResDesktop)
-    searchForSoFWindow()
+    onSoFWindowHandleChange()
     print("SoF found. Adding hooks.")
 
     ole32.CoInitialize(0)
