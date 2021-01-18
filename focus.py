@@ -58,7 +58,7 @@ threadFlag = getattr(win32con, 'THREAD_QUERY_LIMITED_INFORMATION',
                      win32con.THREAD_QUERY_INFORMATION)
 sofId = ""
 resizedDesktop = 0
-resizedSof = 0
+
 # store last event time for displaying time between events
 
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
@@ -70,13 +70,13 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
         global sofMini
         global sofFull
         global resizedDesktop
-        global resizedSof
         global origResDesktop
         global origResSof
 
+
         if event == win32con.EVENT_OBJECT_FOCUS:
 
-            
+            normal = False
             #sof stuff
             fgWindow = win32gui.GetForegroundWindow()
             #print("SoFid = "+str(sofId)+"\n")
@@ -106,11 +106,12 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
                 #focused window != sof
                 #minimise sof just incase
                 #account for vid_fullscreen 0 players
-                if minimized == False:
-                    print("minimise sof")
+                # if minimized == False:
+
+                # print("minimise sof")
+                if normal or not minimized:
                     win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
 
-                resizedSof = 0
                 #if we resized desktop already
                 #lost focus of sof
                 # print("Desktop Active.")
@@ -128,6 +129,7 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             else:
                 if normal:
                     origResSof = getSoFRes(sofId)
+                    print(f"Getting Sof Resolution : {origResSof[0]} , {origResSof[1]}")
                     resizedDesktop = 0
 
                 #we have focus of sof
@@ -185,13 +187,15 @@ def searchForSoFWindow():
                 raise
             pass
         time.sleep(2)
+    # win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+    # win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
     print("Found the SoF window")
     return sofId
 
 
 
 def setRes(x,y):
-    global resizedSof
+    
     devmode = pywintypes.DEVMODEType()
 
     devmode.PelsWidth = x
@@ -200,12 +204,9 @@ def setRes(x,y):
 
     devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
 
-    if resizedSof == 0:
-        if ChangeDisplaySettings(devmode, 0) != win32con.DISP_CHANGE_SUCCESSFUL:
-            return False
-        else:
-            resizedSof = 1
-        return True
+   
+    if ChangeDisplaySettings(devmode, 0) != win32con.DISP_CHANGE_SUCCESSFUL:
+        return False
     return True
 
 def getSoFRes(hwnd):
