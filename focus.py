@@ -73,59 +73,58 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
     fgWindow = win32gui.GetForegroundWindow()
     #print("SoFid = "+str(sofId)+"\n")
     #print("fgwindow"+str(fgWindow)+"\n")
-    try:
-        tup = win32gui.GetWindowPlacement(sofId)
+
+    while True:
+        try:
+            tup = win32gui.GetWindowPlacement(sofId)
+            break
+        except:
+            onSoFWindowHandleChange()
+
+    minimized = True
+    if tup[1] == win32con.SW_SHOWMAXIMIZED:
+        #print("mini false")
+        minimized = False
+    elif tup[1] == win32con.SW_SHOWMINIMIZED:
+        #print("mini true")
         minimized = True
-        if tup[1] == win32con.SW_SHOWMAXIMIZED:
-            #print("mini false")
-            minimized = False
-        elif tup[1] == win32con.SW_SHOWMINIMIZED:
-            #print("mini true")
-            minimized = True
-        elif tup[1] == win32con.SW_SHOWNORMAL:
-            #print("normal true")
-            normal = True
+    elif tup[1] == win32con.SW_SHOWNORMAL:
+        #print("normal true")
+        normal = True
 
+    if fgWindow != sofId:
+        #focused window != sof
+        #minimise sof just incase
+        #account for vid_fullscreen 0 players
+        if minimized == False:
+            print("minimise sof")
+            win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+        #if we resized desktop already
+        #lost focus of sof
+        if origResDesktop != getDesktop():
+            if resizedDesktop == 0:
+                resizedDesktop = 1
+                print("Change res to original")
+                ChangeDisplaySettings(None, 0)
 
-        if fgWindow != sofId:
-            #focused window != sof
-            #minimise sof just incase
-            #account for vid_fullscreen 0 players
-            if minimized == False:
-                print("minimise sof")
-                win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-            #if we resized desktop already
-            #lost focus of sof
-            if origResDesktop != getDesktop():
-                if resizedDesktop == 0:
-                    resizedDesktop = 1
-                    print("Change res to original")
-                    ChangeDisplaySettings(None, 0)
-
-        else:
-            #we have focus of sof
-            print("we have sof focus")
-            theres={}
-            theres = getRes(sofId)
-            print("ok?")
+    else:
+        #we have focus of sof
+        print("we have sof focus")
+        theres={}
+        theres = getRes(sofId)
+        print("ok?")
+        print(theres)
+        if getDesktop() != theres:
+            print("resize desktop to sof res")
+            resizedDesktop = 0
             print(theres)
-            if getDesktop() != theres:
-                print("resize desktop to sof res")
-                resizedDesktop = 0
-                print(theres)
 
-                setRes(theres[0],theres[1])
-                #mini then max seems to fix the LALT bug... hm
-                win32gui.ShowWindow(sofId, 11)
-                win32gui.SetForegroundWindow(sofId)
-                win32gui.ShowWindow(sofId, 9)
+            setRes(theres[0],theres[1])
+            #mini then max seems to fix the LALT bug... hm
+            win32gui.ShowWindow(sofId, 11)
+            win32gui.SetForegroundWindow(sofId)
+            win32gui.ShowWindow(sofId, 9)
 
-
-    except Exception as e:
-        print (e)
-        #print("we closed sof :(")
-        sofId = ""
-        getSofId()
 
 def setHook(WinEventProc, eventType):
     return user32.SetWinEventHook(
@@ -146,27 +145,18 @@ def sofWinEnumHandler( hwnd, ctx ):
     if win32gui.GetWindowText( hwnd ) == "SoF":
         sofId = hwnd
 
-def getSofId():
-    #print("Searching for SoF")
+def searchForSoFWindow():
     global sofId
-    global sofRes
+    sofId = ""
     while sofId == "":
-        print("cant find SoF,,, ill keep looking")
-        #if origResDesktop != getDesktop():
-            #something went wrong, reset the desktop
-            #print("Change res to original")
-            #ChangeDisplaySettings(None, 0)
+        # print("cant find SoF,,, ill keep looking")
         win32gui.EnumWindows( sofWinEnumHandler, None )
         time.sleep(2)
-    print("Found the SoF window")
+    # print("Found the SoF window")
 
-    try:
-        sofRes = getRes(sofId)
-    except Exception as e:
-        print (e)
-        #print("we closed sof :(")
-        sofId = ""
-        getSofId()
+def onSoFWindowHandleChange():
+    sofRes = getRes(sofId)
+
 
 def setRes(x,y):
     devmode = pywintypes.DEVMODEType()
@@ -182,7 +172,12 @@ def getRes(hwnd):
     retRes={}
     retRes[0]="0"
     retRes[1]="0"
-    rect = win32gui.GetWindowRect(hwnd)
+    while True:
+        try:
+            rect = win32gui.GetWindowRect(hwnd)
+            break
+        except:
+            onSoFWindowHandleChange()
     x = rect[0]
     y = rect[1]
     w = rect[2] - x
@@ -207,7 +202,7 @@ def main():
     origResDesktop={}
     origResDesktop = getDesktop()
     print(origResDesktop)
-    getSofId()
+    onSoFWindowHandleChange()
     print("SoF found. Adding hooks.")
 
     ole32.CoInitialize(0)
