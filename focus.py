@@ -99,13 +99,16 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
         if minimized == False:
             print("minimise sof")
             win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+
         #if we resized desktop already
         #lost focus of sof
         if origResDesktop != getDesktop():
             if resizedDesktop == 0:
-                resizedDesktop = 1
-                print("Change res to original")
-                ChangeDisplaySettings(None, 0)
+                if ChangeDisplaySettings(None, 0) == win32con.DISP_CHANGE_SUCCESSFUL:
+                    resizedDesktop = 1
+                    print("Change res to original")
+                else:
+                    print("Change res to original failed")
 
     else:
         #we have focus of sof
@@ -118,12 +121,11 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             print("resize desktop to sof res")
             resizedDesktop = 0
             print(theres)
-
-            setRes(theres[0],theres[1])
+            if not setRes(theres[0],theres[1]):
+                print("failed setting sof resolution")
             #mini then max seems to fix the LALT bug... hm
-            win32gui.ShowWindow(sofId, 11)
-            win32gui.SetForegroundWindow(sofId)
-            win32gui.ShowWindow(sofId, 9)
+            win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+            win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
 
 
 def setHook(WinEventProc, eventType):
@@ -139,7 +141,6 @@ def setHook(WinEventProc, eventType):
 
 def sofWinEnumHandler( hwnd, ctx ):
     global sofId
-    global sofRes
     #if win32gui.IsWindowVisible( hwnd ):
     #print (hex(hwnd), win32gui.GetWindowText( hwnd ))
     if win32gui.GetWindowText( hwnd ) == "SoF":
@@ -166,7 +167,11 @@ def setRes(x,y):
 
     devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
 
-    ChangeDisplaySettings(devmode, 0)
+    if ChangeDisplaySettings(devmode, 0) != win32con.DISP_CHANGE_SUCCESSFUL:
+        return False
+    return True
+
+    
 
 def getRes(hwnd):
     retRes={}
