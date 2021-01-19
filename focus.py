@@ -47,10 +47,6 @@ WinEventProcType = ctypes.WINFUNCTYPE(
 # The types of events we want to listen for, and the names we'll use for
 # them in the log output. Pick from
 # http://msdn.microsoft.com/en-us/library/windows/desktop/dd318066(v=vs.85).aspx
-
-
-
-# limited information would be sufficient, but our platform doesn't have it.
 processFlag = getattr(win32con, 'PROCESS_QUERY_LIMITED_INFORMATION',
                       win32con.PROCESS_QUERY_INFORMATION)
 
