@@ -236,12 +236,19 @@ def getSoFRes(hwnd):
     #get res from SoFplus generated .cfg file
     #rect can not be trusted
     global loc_mm_res
-    with open(loc_mm_res, "r") as f:
-        x = f.readlines()
-        data = x[1].split()
-        data = data[2][1:-1]
-        print("RES from file = {data}" + str(data))
-        res = data.split("x")
+    while True:
+        try:
+            with open(loc_mm_res, "r") as f:
+                x = f.readlines()
+            break
+            pass
+        except Exception as e:
+            print("Error, please make sure you're running the SoFplus script and there is file called mm_res in sofplus/data")
+            time.sleep(1)
+    data = x[1].split()
+    data = data[2][1:-1]
+    print("RES from file"+ str(data))
+    res = data.split("x")
     retRes={}
     retRes[0]=int(res[0])
     retRes[1]=int(res[1])
