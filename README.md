@@ -3,6 +3,8 @@ When playing SoF in fullscreen at lower resolutions e.g. 640x480 - you must now 
 
 With this script running in the background, any time you leave SoF by alt+tab or pressing the windows key it will minimise and resize your desktop to its default value.
 
+Advantage of using an SoFplus script are that you can change gl_mode on the fly with this and it will adjust the desktop correctly
+
 **Install**
 - extract the git .zip to your SoF's user folder 
 - Requires an SoFplus client from sof1.megalag.org/sofplus
