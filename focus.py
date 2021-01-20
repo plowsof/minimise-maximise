@@ -123,10 +123,30 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
                             print("Change res to original failed")
 
             else:
-                if normal:
-                    origResSof = getSoFRes(sofId)
-                    print(f"Getting Sof Resolution : {origResSof[0]} , {origResSof[1]}")
-                    resizedDesktop = 0
+                #what if we fail these checks and 'origResSof is never set?'
+                #shouldnt we wait while until set?
+                while True:
+                    if normal:
+                        print("sof = normal")
+                        origResSof = getSoFRes(sofId)
+                        print(f"Getting Sof Resolution : {origResSof[0]} , {origResSof[1]}")
+                        resizedDesktop = 0
+                        break
+                    else:
+                        print("DEBUG**************not normal and minimised")         
+                        while True:
+                            try:
+                                tup = win32gui.GetWindowPlacement(sofId)
+                                print(tup[1])
+                                if tup[1] == win32con.SW_SHOWNORMAL:
+                                    # print("mini false")
+                                    normal = True
+                                    print("DEBUg- maximised")
+                                break
+                            except Exception as e:
+                                if e == KeyboardInterrupt:
+                                    raise
+                                searchForSoFWindow()
 
                 #we have focus of sof
                 # print("Sof Active.")
@@ -150,6 +170,10 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
             
     except KeyboardInterrupt:
         sys.exit(1)
+
+#def fgWindowNotSof():
+#def fgWindowSof():
+
 def setHook(WinEventProc, eventType):
     return user32.SetWinEventHook(
         eventType,
@@ -207,6 +231,8 @@ def setRes(x,y):
     return True
 
 def getSoFRes(hwnd):
+    #get res from SoFplus generated .cfg file
+    #rect can not be trusted
     retRes={}
     retRes[0]="0"
     retRes[1]="0"
