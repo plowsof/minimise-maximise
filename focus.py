@@ -18,10 +18,12 @@ from win32 import win32gui
 import pywintypes
 from win32api import GetSystemMetrics, ChangeDisplaySettings
 import platform
-
+import os
 user32 = ctypes.windll.user32
 ole32 = ctypes.windll.ole32
 kernel32 = ctypes.windll.kernel32
+
+loc_mm_res = os.path.join(".","sofplus/data/mm_res")
 
 # force aware so can get accurate measurements of taskbar height
 if platform.release() == '10':
@@ -233,9 +235,17 @@ def setRes(x,y):
 def getSoFRes(hwnd):
     #get res from SoFplus generated .cfg file
     #rect can not be trusted
+    global loc_mm_res
+    with open(loc_mm_res, "r") as f:
+        x = f.readlines()
+        data = x[1].split()
+        data = data[2][1:-1]
+        print("RES from file = {data}" + str(data))
+        res = data.split("x")
     retRes={}
-    retRes[0]="0"
-    retRes[1]="0"
+    retRes[0]=int(res[0])
+    retRes[1]=int(res[1])
+    '''
     while True:
         try:
             rect = win32gui.GetWindowRect(hwnd)
@@ -250,6 +260,7 @@ def getSoFRes(hwnd):
     h = rect[3] - y
     retRes[0] = w
     retRes[1] = h
+    '''
     return retRes
 def getDesktop():
     global resDesktop
