@@ -3,6 +3,13 @@ When playing SoF in fullscreen at lower resolutions e.g. 640x480 - you must now 
 
 With this script running in the background, any time you leave SoF by alt+tab or pressing the windows key it will minimise and resize your desktop to its default value.
 
-Major bug where pressing LALT key will lag the game (i the desktop is registering the LALT button press) as if SoF isnt really fullscreen. ~seems to be fixed by messing around with minimizing / maximizing SoF. This 'fix' somehow needs a 'snd_restart' to sounds looping after entering SoF(??)
-
-An 'snd_restart' on maximise would fix an existing bug anyway where sounds while minimised all play at once (also some effects)
+**Install**
+- extract the git .zip to your SoF's user folder 
+- Requires an SoFplus client from sof1.megalag.org/sofplus
+**Usage**
+- sof-mini-maxi.exe must be in your user/ folder
+- when you start the exe, just make sure the desktop resolution is correct
+- to be safe, start sof-mini-maxi.exe first, then SoF
+**Known bugs/issues**
+- for now the exe starts with a terminal box spamming debug strings (normal)
+- when you return to SoF you'll hear bugged sound e.g. an infinite loop playing. Type 'snd_restart' in console to fix this
