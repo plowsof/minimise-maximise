@@ -14,6 +14,7 @@ import ctypes
 import ctypes.wintypes
 
 import time
+import threading
 from win32 import win32gui
 import pywintypes
 from win32api import GetSystemMetrics, ChangeDisplaySettings
@@ -24,6 +25,7 @@ ole32 = ctypes.windll.ole32
 kernel32 = ctypes.windll.kernel32
 
 loc_mm_res = os.path.join(".","sofplus/data/mm_res")
+loc_mm_res_desktop =  os.path.join(".","sofplus/data/mm_res_desktop")
 
 # force aware so can get accurate measurements of taskbar height
 if platform.release() == '10':
@@ -55,10 +57,8 @@ processFlag = getattr(win32con, 'PROCESS_QUERY_LIMITED_INFORMATION',
 threadFlag = getattr(win32con, 'THREAD_QUERY_LIMITED_INFORMATION',
                      win32con.THREAD_QUERY_INFORMATION)
 sofId = ""
-resizedDesktop = 0
-
-# store last event time for displaying time between events
-
+resizeDone = 1
+#timestamp of whne forground window was last sof
 def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
              dwmsEventTime):
     try:
@@ -67,114 +67,92 @@ def callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread,
         #minimise a minimised window = bad?
         global sofMini
         global sofFull
-        global resizedDesktop
+        global resizeDone
         global origResDesktop
         global origResSof
+        #if event == win32con.EVENT_OBJECT_FOCUS:
+        fgWindow = win32gui.GetForegroundWindow()
 
-
-        if event == win32con.EVENT_OBJECT_FOCUS:
-
-            normal = False
-            #sof stuff
-            fgWindow = win32gui.GetForegroundWindow()
-            #print("SoFid = "+str(sofId)+"\n")
-            #print("fgwindow"+str(fgWindow)+"\n")
-
-            while True:
-                try:
-                    tup = win32gui.GetWindowPlacement(sofId)
-                    break
-                except Exception as e:
-                    if e == KeyboardInterrupt:
-                        raise
-                    searchForSoFWindow()
-
-            minimized = True
-            if tup[1] == win32con.SW_SHOWMAXIMIZED:
-                # print("mini false")
-                minimized = False
-            elif tup[1] == win32con.SW_SHOWMINIMIZED:
-                # print("mini true")
-                minimized = True
-            elif tup[1] == win32con.SW_SHOWNORMAL:
-                # print("normal true")
-                normal = True
-
-            if fgWindow != sofId:
-                #focused window != sof
-                #minimise sof just incase
-                #account for vid_fullscreen 0 players
-                # if minimized == False:
-
-                # print("minimise sof")
-                if normal or not minimized:
-                    win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-
-                #if we resized desktop already
-                #lost focus of sof
-                # print("Desktop Active.")
-                # print(f"What it SHOULD be : {origResDesktop[0]} , {origResDesktop[1]}")
-                # getDesktop()
-                # print(f"What it IS : {resDesktop[0]} , {resDesktop[1]}")
-                if origResDesktop != getDesktop():
-                    if resizedDesktop == 0:
-                        if ChangeDisplaySettings(None, 0) == win32con.DISP_CHANGE_SUCCESSFUL:
-                            resizedDesktop = 1
-                            print("Change res to original")
-                        else:
-                            print("Change res to original failed")
-
-            else:
-                #what if we fail these checks and 'origResSof is never set?'
-                #shouldnt we wait while until set?
-                while True:
-                    if normal:
-                        print("sof = normal")
-                        origResSof = getSoFRes(sofId)
-                        print(f"Getting Sof Resolution : {origResSof[0]} , {origResSof[1]}")
-                        resizedDesktop = 0
-                        break
-                    else:
-                        print("DEBUG**************not normal and minimised")         
-                        while True:
-                            try:
-                                tup = win32gui.GetWindowPlacement(sofId)
-                                print(tup[1])
-                                if tup[1] == win32con.SW_SHOWNORMAL:
-                                    # print("mini false")
-                                    normal = True
-                                    print("DEBUg- maximised")
-                                break
-                            except Exception as e:
-                                if e == KeyboardInterrupt:
-                                    raise
-                                searchForSoFWindow()
-
+        if fgWindow != sofId:
+            t = threading.Timer(0.1,fgNotSoF)
+            t.start()
+        elif fgWindow == sofId:
+            print(time.time())
+            #reduce file reads
+            if resizeDone == 0:
+                origres = getSoFRes()
                 #we have focus of sof
-                # print("Sof Active.")
-                # print(f"What it SHOULD be : {origResSof[0]} , {origResSof[1]}")
-                # getDesktop()
-                # print(f"What it IS : {resDesktop[0]} , {resDesktop[1]}")
-                #if the current res of desktop != current res of sof
-                if getDesktop() != origResSof:
-                        print("resize desktop to sof res")
-                        if not setRes(origResSof[0],origResSof[1]):
-                            print("failed setting sof resolution")
-                        #mini then max seems to fix the LALT bug... hm
-                        win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-                        win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
-                else:
-                    print("desktop == sof apparently")
-        elif event == win32con.EVENT_OBJECT_SHOW:
-            # getSoFRes(sofId)
-            # print(f"LOCRESX : {origResSof[0]} LOCRESY : {origResSof[1]}")
-            pass
+                if origres != getLiveDesktop():
+                    #LALT bug theory:
+                    #window must be minimised, desktop resized. then maximised
+                    #else bug happens
+                    win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+                    resizeDesktop(origres,1)
+                    win32gui.MoveWindow(sofId, 0, 0, origres[0], origres[1], False)
+                    win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
+                    win32gui.SetForegroundWindow(sofId) 
+                    resizeDone = 1
             
     except KeyboardInterrupt:
         sys.exit(1)
+def fgNotSoF():
+    global sofId
+    global origResDesktop
+    global resizeDone
+    while True:
+        try:
+            tup = win32gui.GetWindowPlacement(sofId)
+            break
+        except Exception as e:
+            if e == KeyboardInterrupt:
+                raise
+            searchForSoFWindow()
+    fgWindow = win32gui.GetForegroundWindow()
+    if fgWindow != sofId:
+        normal = 0
+        minimized = 0
+        if tup[1] == win32con.SW_SHOWMAXIMIZED:
+            # print("mini false")
+            minimized = 0
+        elif tup[1] == win32con.SW_SHOWMINIMIZED:
+            # print("mini true")
+            minimized = 1
+        elif tup[1] == win32con.SW_SHOWNORMAL:
+            # print("normal true")
+            normal = 1
+        if not minimized or normal:
+            win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+        if origResDesktop != getLiveDesktop():
+            #we know desktop res
+            if not resizeDesktop(origResDesktop,0):
+                print("Change res to original failed")
+            else:
+                resizeDone = 0
 
-#def fgWindowNotSof():
-#def fgWindowSof():
+def resizeDesktop(res,maxi):
+    if getLiveDesktop() != res:
+        print("resize desktop"+str(res))
+        if not setRes(res[0],res[1]):
+            print("failed setting sof resolution")
+        else:
+            return True
+        if maxi == 1:
+            #somehow fixes the LALT lag bug
+            #win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
+
+            #win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
+            pass
+
+def setRes(x,y):
+    
+    devmode = pywintypes.DEVMODEType()
+
+    devmode.PelsWidth = x
+    devmode.PelsHeight = y
+    devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
+    if ChangeDisplaySettings(devmode, 0) != win32con.DISP_CHANGE_SUCCESSFUL:
+        return False
+    return True
 
 def setHook(WinEventProc, eventType):
     return user32.SetWinEventHook(
@@ -210,29 +188,10 @@ def searchForSoFWindow():
             pass
         if sofId == "":
             time.sleep(2)
-    # win32gui.ShowWindow(sofId, win32con.SW_MINIMIZE)
-    # win32gui.ShowWindow(sofId, win32con.SW_MAXIMIZE)
     print("Found the SoF window")
     return sofId
 
-
-
-def setRes(x,y):
-    
-    devmode = pywintypes.DEVMODEType()
-
-    devmode.PelsWidth = x
-    devmode.PelsHeight = y
-    print("Set the desktop res to:"+str(x)+"x"+str(y))
-
-    devmode.Fields = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
-
-   
-    if ChangeDisplaySettings(devmode, 0) != win32con.DISP_CHANGE_SUCCESSFUL:
-        return False
-    return True
-
-def getSoFRes(hwnd):
+def getSoFRes():
     #get res from SoFplus generated .cfg file
     #rect can not be trusted
     global loc_mm_res
@@ -247,7 +206,7 @@ def getSoFRes(hwnd):
             time.sleep(1)
     data = x[1].split()
     data = data[2][1:-1]
-    print("RES from file"+ str(data))
+    print("sof RES from file "+ str(data))
     res = data.split("x")
     retRes={}
     retRes[0]=int(res[0])
@@ -269,25 +228,62 @@ def getSoFRes(hwnd):
     retRes[1] = h
     '''
     return retRes
-def getDesktop():
+def getOrigDesktop():
     global resDesktop
+    global loc_mm_res_desktop
+    while True:
+        try:
+            with open(loc_mm_res_desktop, "r") as f:
+                x = f.readlines()
+            break
+            pass
+        except Exception as e:
+            print("Error, please make sure you're running the SoFplus script and there is file called mm_res in sofplus/data")
+            time.sleep(1)
+    data = x[1].split()
+    data = data[2][1:-1]
+    print("RES from file"+ str(data))
+    res = data.split("x")
+    resDesktop={}
+    resDesktop[0]=int(res[0])
+    resDesktop[1]=int(res[1])
     #print("Width =", GetSystemMetrics(0))
     #print("Height =", GetSystemMetrics(1))
+    #resDesktop={}
+    #resDesktop[0]=GetSystemMetrics(0)
+    #resDesktop[1]=GetSystemMetrics(1)
+    return resDesktop
+def getLiveDesktop():
     resDesktop={}
     resDesktop[0]=GetSystemMetrics(0)
     resDesktop[1]=GetSystemMetrics(1)
     return resDesktop
+def getLiveSof():
+    while True:
+        try:
+            rect = win32gui.GetWindowRect(hwnd)
+            break
+        except Exception as e:
+            if e == KeyboardInterrupt:
+                raise
+            hwnd = searchForSoFWindow()
+    x = rect[0]
+    y = rect[1]
+    w = rect[2] - x
+    h = rect[3] - y
+    retRes[0] = w
+    retRes[1] = h
+    return retRes 
 
 def main():
     global sofId
     global origResDesktop
     #wait for SoF id to be gotten first
     #then continue 
-    origResDesktop={}
-    origResDesktop = getDesktop()
     
-    print(origResDesktop)
     searchForSoFWindow()
+    origResDesktop={}
+    origResDesktop = getOrigDesktop()
     print("SoF found. Adding hooks.")
 
     ole32.CoInitialize(0)
@@ -300,10 +296,10 @@ def main():
         print('SetWinEventHook failed')
         sys.exit(1)
 
-    sizeMoveHook = setHook(WinEventProc,win32con.EVENT_OBJECT_SHOW)
-    if not sizeMoveHook:
-        print('SetWinEventHook failed')
-        sys.exit(1)
+    #sizeMoveHook = setHook(WinEventProc,win32con.EVENT_OBJECT_SHOW)
+    #if not sizeMoveHook:
+    #    print('SetWinEventHook failed')
+    #    sys.exit(1)
 
     msg = ctypes.wintypes.MSG()
     while user32.GetMessageW(ctypes.byref(msg), 0, 0, 0) != 0:
@@ -321,3 +317,4 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         sys.exit(1)
+#WM_GETMINMAXINFO message
